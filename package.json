@@ -1,0 +1,33 @@
+{
+  "name": "folia-offline-reader-highlights",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Folia: Offline Reader & Highlights — 100% Free, Serverless, Local-First Read-It-Later, Multi-Color Highlighter, Offline TTS Listener & Markdown Exporter by kasb LLC",
+  "type": "module",
+  "scripts": {
+    "dev": "node ./node_modules/vite/bin/vite.js --port 5178",
+    "build": "node ./node_modules/typescript/bin/tsc -b && node ./node_modules/vite/bin/vite.js build",
+    "preview": "node ./node_modules/vite/bin/vite.js preview --port 5178",
+    "cap:sync": "node ./node_modules/@capacitor/cli/bin/capacitor sync",
+    "android:open": "node ./node_modules/@capacitor/cli/bin/capacitor open android",
+    "ios:open": "node ./node_modules/@capacitor/cli/bin/capacitor open ios"
+  },
+  "dependencies": {
+    "@capacitor/core": "^7.0.0",
+    "lucide-react": "^0.475.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/android": "^7.0.0",
+    "@capacitor/cli": "^7.0.0",
+    "@capacitor/ios": "^7.0.0",
+    "@tailwindcss/vite": "^4.0.6",
+    "@types/react": "^19.0.8",
+    "@types/react-dom": "^19.0.3",
+    "@vitejs/plugin-react": "^4.3.4",
+    "tailwindcss": "^4.0.6",
+    "typescript": "~5.7.2",
+    "vite": "^6.1.0"
+  }
+}

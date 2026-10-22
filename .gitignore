@@ -1,0 +1,13 @@
+node_modules
+dist
+.expo
+*.jks
+*.keystore
+local.properties
+.DS_Store
+tsconfig.tsbuildinfo
+android/.gradle/
+android/build/
+android/app/build/
+android/capacitor-cordova-android-plugins/build/
+play-store-submission/KEYSTORE_CREDENTIALS.txt

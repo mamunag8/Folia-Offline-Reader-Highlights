@@ -1,0 +1,45 @@
+{
+  "expo": {
+    "name": "Folia: Offline Reader & Highlights",
+    "slug": "folia-offline-reader",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./play-store-submission/graphics/icon-512x512.png",
+    "scheme": "folia",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "backgroundColor": "#FAF7F2",
+      "resizeMode": "contain"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.kasbllc.folia",
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "audio"
+        ],
+        "NSDocumentsFolderUsageDescription": "Folia exports Markdown notes and JSON library backups to your chosen folder."
+      }
+    },
+    "android": {
+      "package": "com.kasbllc.folia",
+      "versionCode": 1,
+      "allowBackup": true,
+      "permissions": [
+        "INTERNET",
+        "VIBRATE"
+      ],
+      "adaptiveIcon": {
+        "backgroundColor": "#2D6A4F"
+      }
+    },
+    "plugins": [
+      "expo-router",
+      "expo-sqlite",
+      "expo-file-system",
+      "expo-sharing",
+      "expo-document-picker"
+    ]
+  }
+}
