@@ -7,15 +7,14 @@ import {
   TagRecord,
 } from '../db/schema';
 import { FONT_FAMILIES, ThemeTokens } from '../constants/theme';
-import {
-  LANGUAGE_MAP,
-  LanguageCode,
-  SUPPORTED_LANGUAGES,
-  UI_TRANSLATIONS,
-} from '../constants/i18n';
+import { UI_TRANSLATIONS } from '../constants/i18n';
 import { db } from '../db/database';
 import { fetchAndParseUrlOnDevice } from '../utils/readabilityParser';
-import { extractValidUrlFromText } from '../utils/clipboardDetector';
+import {
+  extractAllUrlsFromText,
+  extractValidUrlFromText,
+  readClipboardTextAny,
+} from '../utils/clipboardDetector';
 import { triggerHaptic } from '../utils/haptics';
 import {
   Search,
@@ -32,7 +31,7 @@ import {
   Link2,
   Clock,
   CheckCircle2,
-  Globe,
+  Share2,
 } from 'lucide-react';
 
 interface LibraryScreenProps {
@@ -49,6 +48,29 @@ interface LibraryScreenProps {
   onToast: (msg: string) => void;
 }
 
+const QUICK_DISCOVERY_LINKS = [
+  {
+    title: 'Superlinear Returns — Paul Graham',
+    url: 'https://paulgraham.com/superlinear.html',
+    domain: 'paulgraham.com',
+  },
+  {
+    title: 'How to Read a Book — Farnam Street',
+    url: 'https://fs.blog/how-to-read-a-book/',
+    domain: 'fs.blog',
+  },
+  {
+    title: 'There is No Speed Limit — Derek Sivers',
+    url: 'https://sive.rs/kimo',
+    domain: 'sive.rs',
+  },
+  {
+    title: 'File Over App Philosophy — Steph Ango',
+    url: 'https://stephango.com/file-over-app',
+    domain: 'stephango.com',
+  },
+];
+
 export const LibraryScreen: React.FC<LibraryScreenProps> = ({
   articles,
   highlights,
@@ -58,18 +80,18 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({
   clipboardDetectedUrl,
   onDismissClipboardUrl,
   onSelectArticle,
-  onUpdateSettings,
   onDataChanged,
   onToast,
 }) => {
   const ui = UI_TRANSLATIONS[settings.app_language || 'en'] || UI_TRANSLATIONS.en;
-  const currentLangSpec = LANGUAGE_MAP[settings.app_language || 'en'] || LANGUAGE_MAP.en;
 
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<ArticleStatus | 'all'>('inbox');
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
-  const [isLanguageModalOpen, setIsLanguageModalOpen] = useState(false);
+
+  // Inline 1-Tap Quick-Save Bar state
+  const [quickUrlInput, setQuickUrlInput] = useState('');
   const [urlInput, setUrlInput] = useState('');
   const [customTitleInput, setCustomTitleInput] = useState('');
   const [customBodyInput, setCustomBodyInput] = useState('');
@@ -87,12 +109,39 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({
     return map;
   }, [highlights]);
 
-  const handleQuickSaveUrl = async (targetUrl: string, title?: string, bodyText?: string) => {
-    const cleaned = targetUrl.trim();
+  const handleQuickSaveUrl = async (
+    targetUrlOrBatch: string,
+    title?: string,
+    bodyText?: string,
+    openImmediately = false
+  ) => {
+    const cleaned = targetUrlOrBatch.trim();
     if (!cleaned) return;
     setIsSavingUrl(true);
     triggerHaptic('medium');
     try {
+      const batchUrls = !bodyText ? extractAllUrlsFromText(cleaned) : [];
+      if (batchUrls.length > 1) {
+        let lastArt: ArticleRecord | null = null;
+        for (const u of batchUrls) {
+          const parsed = await fetchAndParseUrlOnDevice(u, {
+            cacheImagesOffline: Boolean(settings.cache_images_offline),
+          });
+          db.upsertArticle(parsed);
+          lastArt = parsed;
+        }
+        onDataChanged();
+        setIsSaveModalOpen(false);
+        setQuickUrlInput('');
+        setUrlInput('');
+        triggerHaptic('success');
+        onToast(`⚡ Saved ${batchUrls.length} pages for 100% offline reading!`);
+        if (openImmediately && lastArt) {
+          onSelectArticle(lastArt);
+        }
+        return;
+      }
+
       const parsed = await fetchAndParseUrlOnDevice(cleaned, {
         customTitle: title,
         customBodyText: bodyText,
@@ -101,33 +150,41 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({
       db.upsertArticle(parsed);
       onDataChanged();
       setIsSaveModalOpen(false);
+      setQuickUrlInput('');
       setUrlInput('');
       setCustomTitleInput('');
       setCustomBodyInput('');
-      if (clipboardDetectedUrl === targetUrl) {
-        onDismissClipboardUrl(targetUrl);
+      if (clipboardDetectedUrl && cleaned.includes(clipboardDetectedUrl)) {
+        onDismissClipboardUrl(clipboardDetectedUrl);
       }
       triggerHaptic('success');
-      onToast(`⚡ Saved "${parsed.title.slice(0, 36)}" for 100% offline reading`);
+      onToast(`⚡ Saved "${parsed.title.slice(0, 38)}" offline!`);
+      if (openImmediately) {
+        onSelectArticle(parsed);
+      }
     } finally {
       setIsSavingUrl(false);
     }
   };
 
-  const handlePasteFromClipboardButton = async () => {
+  const handleOneTapClipboardSave = async () => {
     triggerHaptic('light');
-    try {
-      if (navigator.clipboard?.readText) {
-        const text = await navigator.clipboard.readText();
-        const url = extractValidUrlFromText(text);
-        if (url) {
-          await handleQuickSaveUrl(url);
-          return;
-        }
-      }
-    } catch {
-      // Fallback to opening the Save URL modal
+    if (clipboardDetectedUrl) {
+      await handleQuickSaveUrl(clipboardDetectedUrl);
+      return;
     }
+    const text = await readClipboardTextAny();
+    const urls = extractAllUrlsFromText(text);
+    if (urls.length > 0) {
+      await handleQuickSaveUrl(text);
+      return;
+    }
+    const singleUrl = extractValidUrlFromText(text);
+    if (singleUrl) {
+      await handleQuickSaveUrl(singleUrl);
+      return;
+    }
+    onToast('📋 Copy any web link first, or type/paste it in the Quick-Save bar above');
     setIsSaveModalOpen(true);
   };
 
@@ -157,28 +214,17 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({
     onToast('🗑️ Removed article from local database');
   };
 
-  const handleSelectLanguage = (code: LanguageCode) => {
-    triggerHaptic('success');
-    onUpdateSettings({
-      app_language: code,
-      translate_target_lang: code,
-    });
-    setIsLanguageModalOpen(false);
-    const spec = LANGUAGE_MAP[code];
-    onToast(`${spec.flag} Switched language to ${spec.nativeName} (${spec.name})`);
-  };
-
   return (
     <div className="flex h-full flex-col overflow-hidden">
       {/* Top Header */}
       <header
-        className="border-b px-4 pt-4 pb-3 sm:px-6"
+        className="border-b px-4 pt-3.5 pb-3 sm:px-6"
         style={{
           backgroundColor: theme.backgroundPrimary,
           borderColor: theme.borderSubtle,
         }}
       >
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2.5">
             <div
               className="flex h-9 w-9 items-center justify-center rounded-xl font-serif text-lg font-bold shadow-xs"
@@ -214,44 +260,29 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({
           </div>
 
           <div className="flex items-center gap-1.5">
-            {/* 15-Language Selector Pill */}
             <button
-              onClick={() => setIsLanguageModalOpen(true)}
-              className="flex items-center gap-1.5 rounded-xl border px-2.5 py-2 text-xs font-semibold transition-colors"
-              style={{
-                backgroundColor: theme.surfaceCard,
-                borderColor: theme.borderSubtle,
-                color: theme.textPrimary,
-              }}
-              title="App & Article Translation Language (15 Languages)"
-            >
-              <Globe className="h-3.5 w-3.5" style={{ color: theme.brandAccent }} />
-              <span>
-                {currentLangSpec.flag} {currentLangSpec.code.toUpperCase()}
-              </span>
-            </button>
-
-            <button
-              onClick={handlePasteFromClipboardButton}
+              onClick={handleOneTapClipboardSave}
+              disabled={isSavingUrl}
               className="flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-semibold transition-colors"
               style={{
                 backgroundColor: theme.surfaceCard,
                 borderColor: theme.borderSubtle,
                 color: theme.textPrimary,
               }}
-              title="Paste link from clipboard"
+              title="1-Tap Paste & Save copied URL from clipboard"
             >
               <Clipboard className="h-3.5 w-3.5" style={{ color: theme.brandAccent }} />
-              <span>{ui.pasteLink}</span>
+              <span>{isSavingUrl ? 'Saving...' : '1-Tap Paste'}</span>
             </button>
 
             <button
               onClick={() => setIsSaveModalOpen(true)}
-              className="flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-semibold shadow-xs transition-transform active:scale-95"
+              className="flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold shadow-xs transition-transform active:scale-95"
               style={{
                 backgroundColor: theme.brandAccent,
                 color: theme.brandAccentText,
               }}
+              title="Batch save links, paste custom notes, or pick starter articles"
             >
               <Plus className="h-4 w-4" />
               <span>{ui.saveUrl}</span>
@@ -259,10 +290,56 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({
           </div>
         </div>
 
+        {/* Always-Visible 1-Tap Quick-Save URL Bar */}
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (quickUrlInput.trim()) {
+              handleQuickSaveUrl(quickUrlInput);
+            }
+          }}
+          className="mb-2.5 flex items-center gap-1.5 rounded-2xl border p-1.5 shadow-2xs"
+          style={{
+            backgroundColor: theme.surfaceCard,
+            borderColor: theme.brandAccent,
+          }}
+        >
+          <Link2 className="ml-2 h-4 w-4 shrink-0" style={{ color: theme.brandAccent }} />
+          <input
+            type="text"
+            value={quickUrlInput}
+            onChange={(e) => setQuickUrlInput(e.target.value)}
+            placeholder="Quick-Save: Paste or type any link (e.g. paulgraham.com/read.html)..."
+            className="min-w-0 flex-1 bg-transparent px-1.5 py-1 text-xs outline-none sm:text-sm"
+            style={{ color: theme.textPrimary }}
+          />
+          {quickUrlInput && (
+            <button
+              type="button"
+              onClick={() => setQuickUrlInput('')}
+              className="rounded-full p-1 opacity-60 hover:opacity-100"
+              style={{ color: theme.textSecondary }}
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+          <button
+            type="submit"
+            disabled={isSavingUrl || !quickUrlInput.trim()}
+            className="shrink-0 rounded-xl px-3.5 py-1.5 text-xs font-bold transition-all disabled:opacity-50"
+            style={{
+              backgroundColor: theme.brandAccent,
+              color: theme.brandAccentText,
+            }}
+          >
+            {isSavingUrl ? 'Saving...' : '⚡ Save Now'}
+          </button>
+        </form>
+
         {/* Smart Clipboard URL Detection Banner (Algorithm B) */}
         {clipboardDetectedUrl && (
           <div
-            className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-2xl border px-3.5 py-2.5 text-xs shadow-sm"
+            className="mb-2.5 flex flex-wrap items-center justify-between gap-2 rounded-2xl border px-3.5 py-2 text-xs shadow-sm"
             style={{
               backgroundColor: theme.surfaceCard,
               borderColor: theme.brandAccent,
@@ -271,13 +348,13 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({
             <div className="flex min-w-0 flex-1 items-center gap-2">
               <Link2 className="h-4 w-4 shrink-0" style={{ color: theme.brandAccent }} />
               <div className="truncate">
-                <span className="font-semibold">Copied link detected: </span>
+                <span className="font-semibold">Copied link ready: </span>
                 <span className="underline opacity-80">{clipboardDetectedUrl}</span>
               </div>
             </div>
             <div className="flex items-center gap-1.5">
               <button
-                onClick={() => handleQuickSaveUrl(clipboardDetectedUrl)}
+                onClick={() => handleQuickSaveUrl(clipboardDetectedUrl, undefined, undefined, true)}
                 disabled={isSavingUrl}
                 className="rounded-xl px-3 py-1 font-semibold"
                 style={{
@@ -285,7 +362,19 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({
                   color: theme.brandAccentText,
                 }}
               >
-                + Save Now
+                ⚡ Save &amp; Read
+              </button>
+              <button
+                onClick={() => handleQuickSaveUrl(clipboardDetectedUrl)}
+                disabled={isSavingUrl}
+                className="rounded-xl border px-2.5 py-1 font-semibold"
+                style={{
+                  backgroundColor: theme.surfaceElevated,
+                  borderColor: theme.borderSubtle,
+                  color: theme.textPrimary,
+                }}
+              >
+                + Save
               </button>
               <button
                 onClick={() => onDismissClipboardUrl(clipboardDetectedUrl)}
@@ -300,7 +389,7 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({
 
         {/* Instant Local SQLite Full-Text Search Bar */}
         <div
-          className="mb-3 flex items-center gap-2 rounded-2xl border px-3.5 py-2.5"
+          className="mb-2.5 flex items-center gap-2 rounded-2xl border px-3.5 py-2"
           style={{
             backgroundColor: theme.surfaceCard,
             borderColor: theme.borderSubtle,
@@ -312,7 +401,7 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={ui.searchPlaceholder}
-            className="w-full bg-transparent text-sm outline-none"
+            className="w-full bg-transparent text-xs outline-none sm:text-sm"
             style={{ color: theme.textPrimary }}
           />
           {searchQuery && (
@@ -403,7 +492,7 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({
                 No articles match this filter
               </h3>
               <p className="mb-4 text-xs" style={{ color: theme.textSecondary }}>
-                Save any web link to strip ads and read 100% offline with multi-color highlights.
+                Paste any link in the Quick-Save bar above or share from Chrome to read 100% offline.
               </p>
               <button
                 onClick={() => {
@@ -600,80 +689,14 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({
         </div>
       </div>
 
-      {/* 15-Language Built-in Localization & Translator Modal */}
-      {isLanguageModalOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs"
-          onClick={() => setIsLanguageModalOpen(false)}
-        >
-          <div
-            className="w-full max-w-lg rounded-3xl border p-6 shadow-2xl"
-            style={{
-              backgroundColor: theme.surfaceCard,
-              borderColor: theme.borderSubtle,
-              color: theme.textPrimary,
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="mb-4 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Globe className="h-5 w-5" style={{ color: theme.brandAccent }} />
-                <h3
-                  className="text-lg font-bold"
-                  style={{ fontFamily: FONT_FAMILIES.serif.cssFamily }}
-                >
-                  {ui.appLanguageLabel}
-                </h3>
-              </div>
-              <button
-                onClick={() => setIsLanguageModalOpen(false)}
-                className="rounded-full p-1"
-                style={{ color: theme.textSecondary }}
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <p className="mb-4 text-xs" style={{ color: theme.textSecondary }}>
-              Select your preferred language for the Folia interface, full-article bilingual
-              translation, and native Text-to-Speech voice synthesis:
-            </p>
-
-            <div className="grid max-h-80 grid-cols-2 gap-2 overflow-y-auto pr-1 sm:grid-cols-3">
-              {SUPPORTED_LANGUAGES.map((lang) => {
-                const active = settings.app_language === lang.code;
-                return (
-                  <button
-                    key={lang.code}
-                    onClick={() => handleSelectLanguage(lang.code)}
-                    className="flex items-center gap-2 rounded-2xl border p-2.5 text-left transition-all"
-                    style={{
-                      backgroundColor: active ? theme.brandAccent : theme.surfaceElevated,
-                      color: active ? theme.brandAccentText : theme.textPrimary,
-                      borderColor: active ? theme.brandAccent : theme.borderSubtle,
-                    }}
-                  >
-                    <span className="text-lg">{lang.flag}</span>
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate text-xs font-bold">{lang.nativeName}</div>
-                      <div className="truncate text-[10px] opacity-75">{lang.name}</div>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Save URL / Offline Article Parser Modal */}
+      {/* Save URL / Batch Links / Curated Starter Modal */}
       {isSaveModalOpen && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs"
           onClick={() => setIsSaveModalOpen(false)}
         >
           <div
-            className="w-full max-w-lg rounded-3xl border p-6 shadow-2xl"
+            className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl border p-6 shadow-2xl"
             style={{
               backgroundColor: theme.surfaceCard,
               borderColor: theme.borderSubtle,
@@ -681,14 +704,14 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="mb-4 flex items-center justify-between">
+            <div className="mb-3 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="h-5 w-5" style={{ color: theme.brandAccent }} />
                 <h3
                   className="text-lg font-bold"
                   style={{ fontFamily: FONT_FAMILIES.serif.cssFamily }}
                 >
-                  Save Web Article for Offline Reading
+                  Save Web Page or Batch Links Offline
                 </h3>
               </div>
               <button
@@ -700,26 +723,43 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({
               </button>
             </div>
 
-            <p className="mb-4 text-xs leading-relaxed" style={{ color: theme.textSecondary }}>
-              Folia fetches the URL directly on your device, strips ads, popups, and tracking
-              scripts, and stores clean paragraphs in your local SQLite database.
-            </p>
+            {/* Android OS Share Sheet Pro-Tip Card */}
+            <div
+              className="mb-4 flex items-start gap-2.5 rounded-2xl border p-3 text-xs"
+              style={{
+                backgroundColor: `${theme.brandAccent}14`,
+                borderColor: theme.brandAccent,
+                color: theme.textPrimary,
+              }}
+            >
+              <Share2 className="mt-0.5 h-4 w-4 shrink-0" style={{ color: theme.brandAccent }} />
+              <div>
+                <div className="font-bold">Fastest Way: Share directly from Chrome or any App!</div>
+                <div className="mt-0.5 opacity-85">
+                  While browsing in Chrome, YouTube, X, or any app, tap the system{' '}
+                  <strong>Share</strong> button and choose <strong>Folia</strong> — the page is
+                  automatically saved offline in one tap!
+                </div>
+              </div>
+            </div>
 
             <form
               onSubmit={(e) => {
                 e.preventDefault();
-                handleQuickSaveUrl(urlInput, customTitleInput, customBodyInput);
+                handleQuickSaveUrl(urlInput, customTitleInput, customBodyInput, true);
               }}
-              className="space-y-3.5"
+              className="space-y-3"
             >
               <div>
-                <label className="mb-1 block text-xs font-semibold">Article URL *</label>
+                <label className="mb-1 block text-xs font-semibold">
+                  Article URL (or paste multiple URLs to batch save) *
+                </label>
                 <input
                   type="text"
                   required
                   value={urlInput}
                   onChange={(e) => setUrlInput(e.target.value)}
-                  placeholder="https://paulgraham.com/read.html"
+                  placeholder="https://paulgraham.com/superlinear.html"
                   autoFocus
                   className="w-full rounded-xl border px-3.5 py-2.5 text-sm outline-none"
                   style={{
@@ -739,7 +779,7 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({
                   type="text"
                   value={customTitleInput}
                   onChange={(e) => setCustomTitleInput(e.target.value)}
-                  placeholder="Leave blank to extract og:title automatically"
+                  placeholder="Leave blank to extract title automatically"
                   className="w-full rounded-xl border px-3.5 py-2 text-sm outline-none"
                   style={{
                     backgroundColor: theme.backgroundPrimary,
@@ -753,15 +793,15 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({
                 <label className="mb-1 block text-xs font-semibold">
                   Paste Article Text{' '}
                   <span className="font-normal opacity-70">
-                    (Optional — for paywalled or offline notes)
+                    (Optional — for paywalled articles or personal notes)
                   </span>
                 </label>
                 <textarea
-                  rows={3}
+                  rows={2}
                   value={customBodyInput}
                   onChange={(e) => setCustomBodyInput(e.target.value)}
-                  placeholder="Optionally paste raw article text here to format directly into a distraction-free offline edition..."
-                  className="w-full rounded-xl border p-3 text-xs outline-none"
+                  placeholder="Optionally paste raw text here to format directly into an offline edition..."
+                  className="w-full rounded-xl border p-2.5 text-xs outline-none"
                   style={{
                     backgroundColor: theme.backgroundPrimary,
                     borderColor: theme.borderSubtle,
@@ -770,11 +810,11 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({
                 />
               </div>
 
-              <div className="flex justify-end gap-2 pt-2">
+              <div className="flex justify-end gap-2 pt-1">
                 <button
                   type="button"
                   onClick={() => setIsSaveModalOpen(false)}
-                  className="rounded-xl px-4 py-2.5 text-xs font-semibold"
+                  className="rounded-xl px-4 py-2 text-xs font-semibold"
                   style={{
                     backgroundColor: theme.surfaceElevated,
                     color: theme.textSecondary,
@@ -785,16 +825,45 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({
                 <button
                   type="submit"
                   disabled={isSavingUrl}
-                  className="rounded-xl px-5 py-2.5 text-xs font-semibold shadow-sm"
+                  className="rounded-xl px-5 py-2 text-xs font-semibold shadow-sm"
                   style={{
                     backgroundColor: theme.brandAccent,
                     color: theme.brandAccentText,
                   }}
                 >
-                  {isSavingUrl ? 'Parsing On-Device...' : '⚡ Parse & Save Offline'}
+                  {isSavingUrl ? 'Saving Offline...' : '⚡ Save & Open Now'}
                 </button>
               </div>
             </form>
+
+            {/* 1-Tap Quick-Save Discovery Classics */}
+            <div className="mt-5 border-t pt-4" style={{ borderColor: theme.borderSubtle }}>
+              <div className="mb-2 text-xs font-bold" style={{ color: theme.textSecondary }}>
+                ⚡ 1-Tap Quick-Add Popular Essays:
+              </div>
+              <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+                {QUICK_DISCOVERY_LINKS.map((item) => (
+                  <button
+                    key={item.url}
+                    type="button"
+                    disabled={isSavingUrl}
+                    onClick={() => handleQuickSaveUrl(item.url, item.title)}
+                    className="flex items-center justify-between gap-2 rounded-xl border px-3 py-2 text-left text-xs transition-colors hover:opacity-90"
+                    style={{
+                      backgroundColor: theme.surfaceElevated,
+                      borderColor: theme.borderSubtle,
+                      color: theme.textPrimary,
+                    }}
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate font-semibold">{item.title}</div>
+                      <div className="truncate text-[10px] opacity-70">{item.domain}</div>
+                    </div>
+                    <Plus className="h-3.5 w-3.5 shrink-0" style={{ color: theme.brandAccent }} />
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       )}

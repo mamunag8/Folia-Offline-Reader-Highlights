@@ -9,6 +9,31 @@ export function extractDomain(rawUrl: string): string {
   }
 }
 
+export function normalizeUrlInput(rawInput: string): string {
+  const trimmed = rawInput.trim();
+  if (!trimmed) return '';
+  // If input contains a full http(s) URL inside shared text (e.g. "Article Title https://..."), extract the URL
+  const embeddedMatch = trimmed.match(/https?:\/\/[^\s"'<>]+/i);
+  if (embeddedMatch) {
+    return embeddedMatch[0].replace(/[.,;!?)]+$/, '');
+  }
+  // Support bare domains/paths like "paulgraham.com/greatwork.html"
+  const firstToken = trimmed.split(/\s+/)[0];
+  if (/^[a-z0-9-]+(\.[a-z0-9-]+)+(\/.*)?$/i.test(firstToken)) {
+    return `https://${firstToken}`;
+  }
+  return trimmed.startsWith('http') ? trimmed : `https://${trimmed}`;
+}
+
+export function extractTitleFromSharedText(rawInput: string, extractedUrl: string): string | undefined {
+  const withoutUrl = rawInput.replace(extractedUrl, '').replace(/\s+/g, ' ').trim();
+  const cleaned = withoutUrl.replace(/^[-–—:|•]+|[-–—:|•]+$/g, '').trim();
+  if (cleaned.length >= 4 && cleaned.length <= 160 && !cleaned.startsWith('http')) {
+    return cleaned;
+  }
+  return undefined;
+}
+
 export function generateOfflineHeroSvg(title: string, domain: string): string {
   const safeTitle = title
     .replace(/&/g, '&amp;')
@@ -127,6 +152,24 @@ export function parseHtmlToReadableArticle(
         text,
       });
     });
+
+    // Fallback for pages like Paul Graham essays that use <font> or <br><br> inside tables/body instead of <p>
+    if (rawBlocks.length < 2) {
+      const rawText = (container.innerText || container.textContent || '').trim();
+      const paragraphs = rawText
+        .split(/\n\s*\n+/)
+        .map((p) => p.replace(/\s+/g, ' ').trim())
+        .filter((p) => p.length >= 25);
+      paragraphs.forEach((p) => {
+        if (rawBlocks.length === 0 || rawBlocks[rawBlocks.length - 1].text !== p) {
+          rawBlocks.push({
+            index: rawBlocks.length,
+            type: 'p',
+            text: p,
+          });
+        }
+      });
+    }
   }
 
   // Ensure we always have meaningful readable blocks
@@ -173,6 +216,111 @@ export function parseHtmlToReadableArticle(
 }
 
 /**
+ * Parses Jina Reader markdown response into an ArticleRecord
+ */
+function parseJinaReaderMarkdown(
+  markdownText: string,
+  url: string,
+  customTitle?: string,
+  cacheImagesOffline = true
+): ArticleRecord | null {
+  if (!markdownText || markdownText.length < 120) return null;
+  const domain = extractDomain(url);
+  const lines = markdownText.split(/\r?\n/);
+
+  let extractedTitle = customTitle?.trim() || '';
+  const bodyLines: string[] = [];
+
+  for (const line of lines) {
+    if (line.startsWith('Title:') && !extractedTitle) {
+      extractedTitle = line.replace(/^Title:\s*/, '').trim();
+      continue;
+    }
+    if (
+      line.startsWith('URL Source:') ||
+      line.startsWith('Markdown Content:') ||
+      line.startsWith('Published Time:')
+    ) {
+      continue;
+    }
+    bodyLines.push(line);
+  }
+
+  const rawParagraphs = bodyLines
+    .join('\n')
+    .split(/\n{2,}/)
+    .map((p) => p.trim())
+    .filter((p) => p.length >= 20 && !p.startsWith('!['));
+
+  if (rawParagraphs.length === 0) return null;
+
+  const blocks: ContentBlock[] = [];
+  for (const para of rawParagraphs) {
+    // Strip markdown links [text](url) -> text
+    const cleanText = para
+      .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    if (cleanText.length < 20) continue;
+
+    let type: ContentBlockType = 'p';
+    let finalText = cleanText;
+    if (cleanText.startsWith('# ')) {
+      type = 'h1';
+      finalText = cleanText.replace(/^#\s+/, '');
+    } else if (cleanText.startsWith('## ')) {
+      type = 'h2';
+      finalText = cleanText.replace(/^##\s+/, '');
+    } else if (cleanText.startsWith('### ')) {
+      type = 'h3';
+      finalText = cleanText.replace(/^###\s+/, '');
+    } else if (cleanText.startsWith('> ')) {
+      type = 'blockquote';
+      finalText = cleanText.replace(/^>\s+/, '');
+    } else if (cleanText.startsWith('- ') || cleanText.startsWith('* ')) {
+      type = 'li';
+      finalText = cleanText.replace(/^[-*]\s+/, '');
+    }
+
+    if (blocks.length === 0 || blocks[blocks.length - 1].text !== finalText) {
+      blocks.push({
+        index: blocks.length,
+        type,
+        text: finalText,
+      });
+    }
+  }
+
+  if (blocks.length === 0) return null;
+
+  const finalTitle = extractedTitle || blocks[0].text.slice(0, 70) || `Article from ${domain}`;
+  const plainText = blocks.map((b) => b.text).join('\n\n');
+  const wordCount = Math.max(1, plainText.split(/\s+/).filter(Boolean).length);
+  const readingTimeMinutes = Math.max(1, Math.round(wordCount / 220));
+
+  return {
+    id: `art-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    url,
+    domain,
+    title: finalTitle,
+    author: domain,
+    hero_image_uri: generateOfflineHeroSvg(finalTitle, domain),
+    excerpt: (blocks.find((b) => b.type === 'p')?.text || plainText).slice(0, 180),
+    content_blocks_json: JSON.stringify(blocks),
+    plain_text: plainText,
+    word_count: wordCount,
+    reading_time_minutes: readingTimeMinutes,
+    scroll_progress: 0,
+    status: 'inbox',
+    tags_csv: cacheImagesOffline ? 'reading' : 'inbox',
+    created_at: new Date().toISOString(),
+    last_read_at: null,
+  };
+}
+
+/**
  * Graceful fallback when a site blocks direct cross-origin fetching or device is in Airplane Mode
  */
 export function buildFallbackArticleFromUrl(
@@ -180,7 +328,7 @@ export function buildFallbackArticleFromUrl(
   customTitle?: string,
   customBodyText?: string
 ): ArticleRecord {
-  const url = rawUrl.trim().startsWith('http') ? rawUrl.trim() : `https://${rawUrl.trim()}`;
+  const url = normalizeUrlInput(rawUrl);
   const domain = extractDomain(url);
 
   let derivedTitle = customTitle?.trim() || '';
@@ -277,50 +425,105 @@ export function buildFallbackArticleFromUrl(
 }
 
 /**
- * Fetches URL directly on-device with standard mobile User-Agent and falls back gracefully
- * if CORS or offline mode blocks raw HTML retrieval.
+ * Multi-Tier Article Fetcher & Parser:
+ * 1) Tier 1: Native Android HttpURLConnection Bridge (window.FoliaNative.fetchUrlHtml) — Zero CORS
+ * 2) Tier 2: Jina Reader Clean Extraction (https://r.jina.ai/<url>) — Fast CORS-enabled reader
+ * 3) Tier 3: AllOrigins CORS Proxy / Direct Fetch HTML Readability Parser
+ * 4) Tier 4: Offline Airplane-Mode Fallback
  */
 export async function fetchAndParseUrlOnDevice(
   rawUrl: string,
   options?: { customTitle?: string; customBodyText?: string; cacheImagesOffline?: boolean }
 ): Promise<ArticleRecord> {
-  const url = rawUrl.trim().startsWith('http') ? rawUrl.trim() : `https://${rawUrl.trim()}`;
+  const url = normalizeUrlInput(rawUrl);
+  const sharedTitleHint = options?.customTitle || extractTitleFromSharedText(rawUrl, url);
 
   if (options?.customBodyText && options.customBodyText.trim().length > 20) {
-    return buildFallbackArticleFromUrl(url, options.customTitle, options.customBodyText);
+    return buildFallbackArticleFromUrl(url, sharedTitleHint, options.customBodyText);
   }
 
+  // TIER 1: Native Android Java HTTP Fetch (Zero CORS)
+  if (typeof window !== 'undefined' && window.FoliaNative?.fetchUrlHtml) {
+    try {
+      const nativeHtml = window.FoliaNative.fetchUrlHtml(url);
+      if (nativeHtml && nativeHtml.length > 250) {
+        const parsed = parseHtmlToReadableArticle(
+          nativeHtml,
+          url,
+          options?.cacheImagesOffline ?? true
+        );
+        if (parsed.word_count > 45) {
+          if (sharedTitleHint) parsed.title = sharedTitleHint;
+          return parsed;
+        }
+      }
+    } catch {
+      // Fall through to Tier 2
+    }
+  }
+
+  // TIER 2: Jina Reader Clean Extraction API (works across CORS-protected sites in browser & WebView)
   try {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 5500);
-    const response = await fetch(url, {
+    const timer = setTimeout(() => controller.abort(), 5000);
+    const jinaRes = await fetch(`https://r.jina.ai/${url}`, {
       method: 'GET',
-      headers: {
-        Accept: 'text/html,application/xhtml+xml',
-        'User-Agent':
-          'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Mobile Safari/537.36',
-      },
+      headers: { Accept: 'text/plain' },
       signal: controller.signal,
     });
     clearTimeout(timer);
 
-    if (response.ok) {
-      const html = await response.text();
-      if (html && html.length > 200) {
-        const parsed = parseHtmlToReadableArticle(
-          html,
-          url,
-          options?.cacheImagesOffline ?? true
-        );
-        if (options?.customTitle?.trim()) {
-          parsed.title = options.customTitle.trim();
-        }
-        return parsed;
+    if (jinaRes.ok) {
+      const text = await jinaRes.text();
+      const parsedJina = parseJinaReaderMarkdown(
+        text,
+        url,
+        sharedTitleHint,
+        options?.cacheImagesOffline ?? true
+      );
+      if (parsedJina && parsedJina.word_count > 40) {
+        return parsedJina;
       }
     }
   } catch {
-    // Direct fetch blocked by CORS or device is offline in Airplane Mode — use clean local parser fallback
+    // Fall through to Tier 3
   }
 
-  return buildFallbackArticleFromUrl(url, options?.customTitle, options?.customBodyText);
+  // TIER 3: Direct Fetch or AllOrigins Raw HTML Proxy
+  const endpoints = [
+    url,
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+  ];
+
+  for (const endpoint of endpoints) {
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 4500);
+      const response = await fetch(endpoint, {
+        method: 'GET',
+        signal: controller.signal,
+      });
+      clearTimeout(timer);
+
+      if (response.ok) {
+        const html = await response.text();
+        if (html && html.length > 250) {
+          const parsed = parseHtmlToReadableArticle(
+            html,
+            url,
+            options?.cacheImagesOffline ?? true
+          );
+          if (sharedTitleHint) {
+            parsed.title = sharedTitleHint;
+          }
+          return parsed;
+        }
+      }
+    } catch {
+      // try next endpoint
+    }
+  }
+
+  // TIER 4: Offline / Airplane Mode Graceful Fallback
+  return buildFallbackArticleFromUrl(url, sharedTitleHint, options?.customBodyText);
 }

@@ -21,7 +21,7 @@ import { db } from '../db/database';
 import { ttsController, TTSState } from '../utils/ttsController';
 import { formatArticleMarkdown, shareOrDownloadFile } from '../utils/exporters';
 import {
-  getCachedArticleTranslation,
+   getCachedArticleTranslation,
   TranslatedArticlePayload,
   translateFullArticle,
   translateSingleText,
@@ -47,6 +47,7 @@ import {
   Tag,
   Globe,
   Languages,
+  X,
 } from 'lucide-react';
 
 interface ReaderViewProps {
@@ -102,18 +103,15 @@ export const ReaderView: React.FC<ReaderViewProps> = ({
   const [ttsState, setTtsState] = useState<TTSState>(() => ttsController.getState());
   const [ttsBarVisible, setTtsBarVisible] = useState(false);
 
-  // Full Article & Block Multi-Language Translation State
+  // Full Article & Block Multi-Language Translation State (Strictly OFF / 'original' by default!)
   const [targetLang, setTargetLang] = useState<LanguageCode>(
-    settings.translate_target_lang || (settings.app_language !== 'en' ? settings.app_language : 'es')
+    settings.translate_target_lang || 'es'
   );
   const [translationMode, setTranslationMode] = useState<TranslationViewMode>('original');
   const [isTranslationDrawerOpen, setIsTranslationDrawerOpen] = useState(false);
   const [isTranslatingArticle, setIsTranslatingArticle] = useState(false);
-  const [articleTranslation, setArticleTranslation] = useState<TranslatedArticlePayload | null>(() =>
-    getCachedArticleTranslation(
-      article.id,
-      settings.translate_target_lang || 'es'
-    )
+  const [articleTranslation, setArticleTranslation] = useState<TranslatedArticlePayload | null>(
+    null
   );
   const [singleBlockTranslations, setSingleBlockTranslations] = useState<Record<number, string>>({});
 
@@ -121,7 +119,7 @@ export const ReaderView: React.FC<ReaderViewProps> = ({
   const lastScrollTopRef = useRef(0);
   const blockRefs = useRef<Record<number, HTMLDivElement | null>>({});
 
-  // Build active blocks for TTS (uses translated blocks when in 'translated' mode!)
+  // Build active blocks for TTS (uses translated blocks only when user explicitly activates translation)
   const activeTtsBlocks = useMemo(() => {
     if (translationMode !== 'original' && articleTranslation) {
       return blocks.map((b) => ({
@@ -132,12 +130,12 @@ export const ReaderView: React.FC<ReaderViewProps> = ({
     return blocks;
   }, [blocks, translationMode, articleTranslation]);
 
+  // Initialize TTS & reset translation to Original when opening an article
   useEffect(() => {
-    const langSpec =
-      translationMode !== 'original'
-        ? LANGUAGE_MAP[targetLang]
-        : LANGUAGE_MAP[settings.app_language || 'en'];
-    ttsController.loadBlocks(activeTtsBlocks, settings.tts_rate, langSpec?.bcp47 || 'en-US');
+    setTranslationMode('original');
+    setArticleTranslation(null);
+    setSingleBlockTranslations({});
+    ttsController.loadBlocks(blocks, settings.tts_rate, 'en');
     const unsub = ttsController.subscribe((st) => {
       setTtsState(st);
       if (st.isPlaying) {
@@ -152,7 +150,15 @@ export const ReaderView: React.FC<ReaderViewProps> = ({
       unsub();
       ttsController.stop();
     };
-  }, [article.id, activeTtsBlocks, targetLang, translationMode]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [article.id]);
+
+  // Sync updated blocks or explicit translation language to TTS without stopping active playback
+  useEffect(() => {
+    const activeVoiceLang: LanguageCode =
+      translationMode !== 'original' ? targetLang : 'en';
+    ttsController.updateBlocks(activeTtsBlocks, activeVoiceLang);
+  }, [activeTtsBlocks, targetLang, translationMode]);
 
   useEffect(() => {
     if (initialBlockIndex !== undefined && initialBlockIndex !== null) {
@@ -284,11 +290,19 @@ export const ReaderView: React.FC<ReaderViewProps> = ({
     setSelectedBlockIndex(null);
   };
 
+  const handleResetToOriginalLanguage = () => {
+    triggerHaptic('light');
+    setTranslationMode('original');
+    setSingleBlockTranslations({});
+    onToast('🌐 Original language restored (Translation Off)');
+  };
+
   const handleReadFromHere = (blockIndex: number) => {
     triggerHaptic('light');
     setTtsBarVisible(true);
     ttsController.startFromBlock(blockIndex);
     setSelectedBlockIndex(null);
+    onToast(`🔊 Reading aloud from paragraph ${blockIndex + 1}`);
   };
 
   const handleStartListenTop = () => {
@@ -298,6 +312,7 @@ export const ReaderView: React.FC<ReaderViewProps> = ({
       ttsController.togglePlayPause();
     } else {
       ttsController.startFromBlock(ttsState.activeBlockIndex || 0);
+      onToast('🔊 Audio narration started');
     }
   };
 
@@ -488,7 +503,7 @@ export const ReaderView: React.FC<ReaderViewProps> = ({
               <div className="flex items-center gap-1">
                 {(
                   [
-                    { id: 'original', label: ui.originalLanguage },
+                    { id: 'original', label: `${ui.originalLanguage} (Off)` },
                     { id: 'bilingual', label: ui.bilingualMode },
                     { id: 'translated', label: ui.translatedOnly },
                   ] as const
@@ -499,7 +514,7 @@ export const ReaderView: React.FC<ReaderViewProps> = ({
                       key={m.id}
                       onClick={() => {
                         if (m.id === 'original') {
-                          setTranslationMode('original');
+                          handleResetToOriginalLanguage();
                         } else {
                           handleRunFullTranslation(targetLang, m.id);
                         }
@@ -588,6 +603,32 @@ export const ReaderView: React.FC<ReaderViewProps> = ({
                 ? articleTranslation.translatedTitle
                 : article.title}
             </h1>
+
+            {/* Active Translation Banner with 1-Tap Reset to Original */}
+            {(translationMode !== 'original' || Object.keys(singleBlockTranslations).length > 0) && (
+              <div
+                className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border px-3 py-2 text-xs"
+                style={{
+                  backgroundColor: `${theme.brandAccent}15`,
+                  borderColor: theme.brandAccent,
+                  color: theme.textPrimary,
+                }}
+              >
+                <span className="font-semibold">
+                  {targetLangSpec.flag} Translation Active ({targetLangSpec.nativeName} — {targetLangSpec.name})
+                </span>
+                <button
+                  onClick={handleResetToOriginalLanguage}
+                  className="rounded-lg px-2.5 py-1 text-[11px] font-bold transition-opacity hover:opacity-90"
+                  style={{
+                    backgroundColor: theme.brandAccent,
+                    color: theme.brandAccentText,
+                  }}
+                >
+                  Show Original (Turn Off)
+                </button>
+              </div>
+            )}
 
             {/* Bilingual Translated Title Sub-heading */}
             {translationMode === 'bilingual' && articleTranslation && (
@@ -726,9 +767,11 @@ export const ReaderView: React.FC<ReaderViewProps> = ({
                 : 'transparent';
 
               const translatedBlockText =
-                articleTranslation?.translatedBlocks[block.index] ||
-                singleBlockTranslations[block.index] ||
-                null;
+                translationMode !== 'original'
+                  ? articleTranslation?.translatedBlocks[block.index] ||
+                    singleBlockTranslations[block.index] ||
+                    null
+                  : singleBlockTranslations[block.index] || null;
 
               const displayPrimaryText =
                 translationMode === 'translated' && translatedBlockText
@@ -1070,6 +1113,21 @@ export const ReaderView: React.FC<ReaderViewProps> = ({
               title="Cycle TTS Playback Speed"
             >
               {ttsState.rate}x
+            </button>
+
+            <button
+              onClick={() => {
+                ttsController.stop();
+                setTtsBarVisible(false);
+              }}
+              className="ml-0.5 rounded-xl p-2 transition-colors"
+              style={{
+                backgroundColor: theme.surfaceElevated,
+                color: theme.textSecondary,
+              }}
+              title="Stop & Close Player"
+            >
+              <X className="h-4 w-4" />
             </button>
           </div>
         </div>

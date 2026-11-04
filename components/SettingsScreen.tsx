@@ -120,10 +120,10 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
     triggerHaptic('light');
     onUpdateSettings({
       app_language: code,
-      translate_target_lang: code,
+      translate_target_lang: code === 'en' ? 'es' : code,
     });
     const spec = LANGUAGE_MAP[code];
-    onToast(`${spec.flag} Language set to ${spec.nativeName} (${spec.name})`);
+    onToast(`${spec.flag} UI language set to ${spec.nativeName} (Auto-translation stays OFF by default)`);
   };
 
   return (
@@ -208,8 +208,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
             <div>
               <h2 className="text-sm font-bold">{ui.appLanguageLabel}</h2>
               <p className="text-xs" style={{ color: theme.textSecondary }}>
-                Switch app interface (LTR &amp; RTL) and default full-article translation language
-                across all 15 main global languages:
+                Articles always open in their <strong>original language</strong> by default (Auto-Translation is OFF). You can optionally translate any article on-demand inside the reader or switch UI language below:
               </p>
             </div>
           </div>

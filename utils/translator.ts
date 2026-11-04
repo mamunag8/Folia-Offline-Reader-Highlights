@@ -228,7 +228,8 @@ export async function translateSingleText(
   targetLang: LanguageCode
 ): Promise<string> {
   const trimmed = text.trim();
-  if (!trimmed || targetLang === 'en') return trimmed;
+  if (!trimmed) return trimmed;
+  if (targetLang === 'en' && OFFLINE_PASSAGE_DICTIONARY[trimmed]) return trimmed;
 
   // 1. Check exact match in local offline dictionary
   const exact = OFFLINE_PASSAGE_DICTIONARY[trimmed]?.[targetLang];

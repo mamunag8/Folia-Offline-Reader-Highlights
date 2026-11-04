@@ -8,7 +8,11 @@ import {
 } from '../db/schema';
 import { THEMES, ThemeMode } from '../constants/theme';
 import { LANGUAGE_MAP, UI_TRANSLATIONS } from '../constants/i18n';
-import { checkClipboardForNewUrl } from '../utils/clipboardDetector';
+import {
+  checkClipboardForNewUrl,
+  extractAllUrlsFromText,
+} from '../utils/clipboardDetector';
+import { fetchAndParseUrlOnDevice } from '../utils/readabilityParser';
 import { triggerHaptic } from '../utils/haptics';
 import { LibraryScreen } from '../components/LibraryScreen';
 import { ReaderView } from '../components/ReaderView';
@@ -38,7 +42,7 @@ export const App: React.FC = () => {
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     toastTimerRef.current = setTimeout(() => {
       setToastMessage(null);
-    }, 2800);
+    }, 3200);
   }, []);
 
   const refreshAllData = useCallback(() => {
@@ -47,6 +51,37 @@ export const App: React.FC = () => {
     setHighlights(db.getAllHighlights());
     setTags(db.getAllTags());
   }, []);
+
+  // Auto-save any URL shared via Android OS Share Sheet (ACTION_SEND / ACTION_VIEW)
+  const handleIncomingSharedContent = useCallback(
+    async (rawSharedText: string) => {
+      if (!rawSharedText || !rawSharedText.trim()) return;
+      const urls = extractAllUrlsFromText(rawSharedText);
+      if (urls.length === 0) return;
+
+      triggerHaptic('medium');
+      showToast('⚡ Saving shared page for offline reading...');
+      const currentSettings = db.getSettings();
+
+      let lastSaved: ArticleRecord | null = null;
+      for (const url of urls) {
+        const parsed = await fetchAndParseUrlOnDevice(rawSharedText.includes(url) && urls.length === 1 ? rawSharedText : url, {
+          cacheImagesOffline: Boolean(currentSettings.cache_images_offline),
+        });
+        db.upsertArticle(parsed);
+        dismissedClipboardUrlsRef.current.add(url);
+        lastSaved = parsed;
+      }
+
+      refreshAllData();
+      if (lastSaved) {
+        triggerHaptic('success');
+        showToast(`⚡ Saved "${lastSaved.title.slice(0, 38)}" offline!`);
+        setActiveReaderArticleId(lastSaved.id);
+      }
+    },
+    [refreshAllData, showToast]
+  );
 
   // Support deep-link / query params for instant showcase & OS Share Sheet intents
   useEffect(() => {
@@ -71,28 +106,49 @@ export const App: React.FC = () => {
       setActiveTab('library');
     }
 
-    if (sharedUrl && sharedUrl.startsWith('http')) {
-      setClipboardUrl(sharedUrl);
+    if (sharedUrl && sharedUrl.trim()) {
+      handleIncomingSharedContent(sharedUrl);
     }
-  }, []);
+  }, [handleIncomingSharedContent]);
 
-  // Algorithm B: Smart Clipboard URL Detector on app foreground / focus
+  // Wire up Android Native Share Sheet Receiver + Smart Clipboard Detector
   useEffect(() => {
-    const runClipboardCheck = async () => {
+    window.__foliaOnSharedUrl = (sharedText: string) => {
+      handleIncomingSharedContent(sharedText);
+    };
+
+    const checkNativePendingShareAndClipboard = async () => {
+      try {
+        if (window.FoliaNative?.consumePendingSharedText) {
+          const pending = window.FoliaNative.consumePendingSharedText();
+          if (pending && pending.trim()) {
+            await handleIncomingSharedContent(pending);
+            return;
+          }
+        }
+      } catch {
+        // ignore
+      }
+
       const detected = await checkClipboardForNewUrl(dismissedClipboardUrlsRef.current);
       if (detected) {
         setClipboardUrl(detected);
       }
     };
-    runClipboardCheck();
-    window.addEventListener('focus', runClipboardCheck);
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') runClipboardCheck();
-    });
-    return () => {
-      window.removeEventListener('focus', runClipboardCheck);
+
+    checkNativePendingShareAndClipboard();
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        checkNativePendingShareAndClipboard();
+      }
     };
-  }, []);
+    window.addEventListener('focus', checkNativePendingShareAndClipboard);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      window.removeEventListener('focus', checkNativePendingShareAndClipboard);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, [handleIncomingSharedContent]);
 
   const handleUpdateSettings = (patch: Partial<ReaderSettingsRecord>) => {
     const next = db.updateSettings(patch);
