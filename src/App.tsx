@@ -31,6 +31,7 @@ export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<ActiveTab>('library');
   const [activeReaderArticleId, setActiveReaderArticleId] = useState<string | null>(null);
   const [readerJumpBlock, setReaderJumpBlock] = useState<number | null>(null);
+  const [autoListenOnOpen, setAutoListenOnOpen] = useState<boolean>(false);
 
   const [clipboardUrl, setClipboardUrl] = useState<string | null>(null);
   const dismissedClipboardUrlsRef = useRef<Set<string>>(new Set());
@@ -201,9 +202,11 @@ export const App: React.FC = () => {
           settings={settings}
           theme={theme}
           initialBlockIndex={readerJumpBlock}
+          autoStartListen={autoListenOnOpen}
           onBack={() => {
             setActiveReaderArticleId(null);
             setReaderJumpBlock(null);
+            setAutoListenOnOpen(false);
             refreshAllData();
           }}
           onUpdateSettings={handleUpdateSettings}
@@ -225,9 +228,10 @@ export const App: React.FC = () => {
                   dismissedClipboardUrlsRef.current.add(u);
                   setClipboardUrl(null);
                 }}
-                onSelectArticle={(art, blockIdx) => {
+                onSelectArticle={(art, blockIdx, autoListen) => {
                   triggerHaptic('light');
                   setReaderJumpBlock(blockIdx ?? null);
+                  setAutoListenOnOpen(Boolean(autoListen));
                   setActiveReaderArticleId(art.id);
                 }}
                 onUpdateSettings={handleUpdateSettings}

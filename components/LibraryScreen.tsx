@@ -32,6 +32,7 @@ import {
   Clock,
   CheckCircle2,
   Share2,
+  Headphones,
 } from 'lucide-react';
 
 interface LibraryScreenProps {
@@ -42,7 +43,7 @@ interface LibraryScreenProps {
   theme: ThemeTokens;
   clipboardDetectedUrl: string | null;
   onDismissClipboardUrl: (url: string) => void;
-  onSelectArticle: (article: ArticleRecord, blockIndex?: number) => void;
+  onSelectArticle: (article: ArticleRecord, blockIndex?: number, autoListen?: boolean) => void;
   onUpdateSettings: (patch: Partial<ReaderSettingsRecord>) => void;
   onDataChanged: () => void;
   onToast: (msg: string) => void;
@@ -290,7 +291,7 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({
           </div>
         </div>
 
-        {/* Always-Visible 1-Tap Quick-Save URL Bar */}
+        {/* Always-Visible 1-Tap Quick-Save URL Bar + Built-in Paste */}
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -298,7 +299,7 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({
               handleQuickSaveUrl(quickUrlInput);
             }
           }}
-          className="mb-2.5 flex items-center gap-1.5 rounded-2xl border p-1.5 shadow-2xs"
+          className="mb-2 flex items-center gap-1.5 rounded-2xl border p-1.5 shadow-2xs"
           style={{
             backgroundColor: theme.surfaceCard,
             borderColor: theme.brandAccent,
@@ -309,11 +310,11 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({
             type="text"
             value={quickUrlInput}
             onChange={(e) => setQuickUrlInput(e.target.value)}
-            placeholder="Quick-Save: Paste or type any link (e.g. paulgraham.com/read.html)..."
+            placeholder="Paste or type any link (e.g. paulgraham.com/read.html)..."
             className="min-w-0 flex-1 bg-transparent px-1.5 py-1 text-xs outline-none sm:text-sm"
             style={{ color: theme.textPrimary }}
           />
-          {quickUrlInput && (
+          {quickUrlInput ? (
             <button
               type="button"
               onClick={() => setQuickUrlInput('')}
@@ -321,6 +322,22 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({
               style={{ color: theme.textSecondary }}
             >
               <X className="h-3.5 w-3.5" />
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleOneTapClipboardSave}
+              disabled={isSavingUrl}
+              className="inline-flex shrink-0 items-center gap-1 rounded-xl border px-2.5 py-1.5 text-xs font-semibold transition-colors"
+              style={{
+                backgroundColor: theme.surfaceElevated,
+                borderColor: theme.borderSubtle,
+                color: theme.textPrimary,
+              }}
+              title="1-Tap Paste & Save from Clipboard"
+            >
+              <Clipboard className="h-3 w-3" style={{ color: theme.brandAccent }} />
+              <span>Paste</span>
             </button>
           )}
           <button
@@ -332,9 +349,36 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({
               color: theme.brandAccentText,
             }}
           >
-            {isSavingUrl ? 'Saving...' : '⚡ Save Now'}
+            {isSavingUrl ? 'Saving...' : '⚡ Save'}
           </button>
         </form>
+
+        {/* 1-Tap Quick-Add Discovery Chips (No Modal Needed) */}
+        <div className="mb-2.5 flex items-center gap-1.5 overflow-x-auto pb-0.5 no-scrollbar">
+          <span
+            className="shrink-0 text-[11px] font-semibold"
+            style={{ color: theme.textSecondary }}
+          >
+            ⚡ Quick-Add:
+          </span>
+          {QUICK_DISCOVERY_LINKS.map((item) => (
+            <button
+              key={item.url}
+              type="button"
+              disabled={isSavingUrl}
+              onClick={() => handleQuickSaveUrl(item.url, item.title)}
+              className="inline-flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-semibold transition-all hover:opacity-90"
+              style={{
+                backgroundColor: theme.surfaceElevated,
+                borderColor: theme.borderSubtle,
+                color: theme.textPrimary,
+              }}
+            >
+              <Plus className="h-3 w-3" style={{ color: theme.brandAccent }} />
+              <span>{item.title.split('—')[0].trim()}</span>
+            </button>
+          ))}
+        </div>
 
         {/* Smart Clipboard URL Detection Banner (Algorithm B) */}
         {clipboardDetectedUrl && (
@@ -615,8 +659,25 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({
                           </span>
                         </div>
 
-                        {/* Swipe / Tactile Card Actions (Archive, Favorite, Delete) */}
+                        {/* Swipe / Tactile Card Actions (1-Tap Listen, Favorite, Archive, Delete) */}
                         <div className="flex items-center gap-1">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              triggerHaptic('light');
+                              onSelectArticle(art, undefined, true);
+                            }}
+                            className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-colors"
+                            style={{
+                              backgroundColor: `${theme.brandAccent}20`,
+                              color: theme.brandAccent,
+                            }}
+                            title="Open & Listen Aloud"
+                          >
+                            <Headphones className="h-3.5 w-3.5" />
+                            <span>{ui.listen}</span>
+                          </button>
+
                           <button
                             onClick={(e) => handleToggleFavorite(e, art)}
                             className="rounded-lg p-1.5 transition-colors"

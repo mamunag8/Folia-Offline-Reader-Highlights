@@ -55,6 +55,7 @@ interface ReaderViewProps {
   settings: ReaderSettingsRecord;
   theme: ThemeTokens;
   initialBlockIndex?: number | null;
+  autoStartListen?: boolean;
   onBack: () => void;
   onUpdateSettings: (patch: Partial<ReaderSettingsRecord>) => void;
   onDataChanged: () => void;
@@ -68,6 +69,7 @@ export const ReaderView: React.FC<ReaderViewProps> = ({
   settings,
   theme,
   initialBlockIndex,
+  autoStartListen,
   onBack,
   onUpdateSettings,
   onDataChanged,
@@ -146,6 +148,12 @@ export const ReaderView: React.FC<ReaderViewProps> = ({
         }
       }
     });
+    if (autoStartListen) {
+      setTtsBarVisible(true);
+      setTimeout(() => {
+        ttsController.startFromBlock(0);
+      }, 80);
+    }
     return () => {
       unsub();
       ttsController.stop();
@@ -415,23 +423,55 @@ export const ReaderView: React.FC<ReaderViewProps> = ({
         </div>
 
         <div className="flex items-center gap-1.5">
-          {/* Built-in Full Article Multi-Language Translator Button */}
+          {/* 1-Tap Bangla (বাংলা) Quick-Translate Toggle Button */}
+          <button
+            onClick={() => {
+              if (translationMode !== 'original' && targetLang === 'bn') {
+                handleResetToOriginalLanguage();
+              } else {
+                handleRunFullTranslation('bn', 'bilingual');
+              }
+            }}
+            className="flex items-center gap-1 rounded-xl border px-2.5 py-1.5 text-xs font-bold transition-all"
+            style={{
+              backgroundColor:
+                translationMode !== 'original' && targetLang === 'bn'
+                  ? theme.brandAccent
+                  : theme.surfaceElevated,
+              color:
+                translationMode !== 'original' && targetLang === 'bn'
+                  ? theme.brandAccentText
+                  : theme.textPrimary,
+              borderColor:
+                translationMode !== 'original' && targetLang === 'bn'
+                  ? theme.brandAccent
+                  : theme.borderSubtle,
+            }}
+            title="1-Tap Bangla (বাংলা) Translation Toggle"
+          >
+            <span>🇧🇩</span>
+            <span>
+              {translationMode !== 'original' && targetLang === 'bn' ? 'বাংলা (Off)' : 'বাংলা'}
+            </span>
+          </button>
+
+          {/* Built-in Full Article Multi-Language Translator Button (16 Languages) */}
           <button
             onClick={() => setIsTranslationDrawerOpen(!isTranslationDrawerOpen)}
             className="flex items-center gap-1.5 rounded-xl border px-2.5 py-1.5 text-xs font-semibold transition-all"
             style={{
               backgroundColor:
-                translationMode !== 'original' || isTranslationDrawerOpen
+                (translationMode !== 'original' && targetLang !== 'bn') || isTranslationDrawerOpen
                   ? theme.brandAccent
                   : theme.surfaceElevated,
               color:
-                translationMode !== 'original' || isTranslationDrawerOpen
+                (translationMode !== 'original' && targetLang !== 'bn') || isTranslationDrawerOpen
                   ? theme.brandAccentText
                   : theme.textPrimary,
               borderColor:
                 translationMode !== 'original' ? theme.brandAccent : theme.borderSubtle,
             }}
-            title="Translate Full Article (15 Main Languages)"
+            title="Translate Full Article (16 Main Languages)"
           >
             <Languages className="h-3.5 w-3.5" />
             <span>
@@ -496,7 +536,7 @@ export const ReaderView: React.FC<ReaderViewProps> = ({
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-1.5 text-xs font-bold">
                 <Globe className="h-4 w-4" style={{ color: theme.brandAccent }} />
-                <span>Built-In Full Article Translator (15 Languages • Offline Cached)</span>
+                <span>Built-In Full Article Translator (16 Languages • Offline Cached)</span>
               </div>
 
               {/* View Mode Switcher: Original | Bilingual Side-by-Side | Translated Full Text */}
@@ -1044,6 +1084,79 @@ export const ReaderView: React.FC<ReaderViewProps> = ({
           </div>
         </article>
       </div>
+
+      {/* Floating One-Handed Quick-Control Pill when scrolled down */}
+      {headerHidden && !ttsBarVisible && (
+        <div
+          className="fixed right-4 bottom-5 left-4 z-30 mx-auto flex max-w-sm items-center justify-around rounded-full border px-3 py-2 shadow-xl backdrop-blur-md"
+          style={{
+            backgroundColor: `${theme.surfaceCard}F2`,
+            borderColor: theme.brandAccent,
+            color: theme.textPrimary,
+          }}
+        >
+          <button
+            onClick={handleStartListenTop}
+            className="flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold"
+            style={{
+              backgroundColor: theme.brandAccent,
+              color: theme.brandAccentText,
+            }}
+          >
+            <Headphones className="h-3.5 w-3.5" />
+            <span>{ui.listen}</span>
+          </button>
+
+          <button
+            onClick={() => {
+              if (translationMode !== 'original' && targetLang === 'bn') {
+                handleResetToOriginalLanguage();
+              } else {
+                handleRunFullTranslation('bn', 'bilingual');
+              }
+            }}
+            className="flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold"
+            style={{
+              backgroundColor:
+                translationMode !== 'original' && targetLang === 'bn'
+                  ? theme.brandAccent
+                  : theme.surfaceElevated,
+              color:
+                translationMode !== 'original' && targetLang === 'bn'
+                  ? theme.brandAccentText
+                  : theme.textPrimary,
+            }}
+          >
+            <span>🇧🇩 বাংলা</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setHeaderHidden(false);
+              setIsTranslationDrawerOpen(true);
+            }}
+            className="flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold"
+            style={{
+              backgroundColor: theme.surfaceElevated,
+              color: theme.textPrimary,
+            }}
+          >
+            <Languages className="h-3.5 w-3.5" />
+            <span>16 Lang</span>
+          </button>
+
+          <button
+            onClick={() => setIsTypographyOpen(true)}
+            className="rounded-full px-2.5 py-1 font-serif text-xs font-bold"
+            style={{
+              backgroundColor: theme.surfaceElevated,
+              color: theme.textPrimary,
+            }}
+          >
+            Aa
+          </button>
+        </div>
+      )}
 
       {/* Persistent Floating Audio Mini-Player (Algorithm D) */}
       {ttsBarVisible && (

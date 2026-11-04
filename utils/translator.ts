@@ -14,6 +14,7 @@ export interface TranslatedArticlePayload {
 // Comprehensive offline curated translations for sample titles, headings, and paragraphs across all 15 main languages
 const OFFLINE_PASSAGE_DICTIONARY: Record<string, Partial<Record<LanguageCode, string>>> = {
   'How to Do Great Work': {
+    bn: 'কীভাবে মহান ও কালজয়ী কাজ করবেন',
     ar: 'كيف تنجز عملاً عظيماً',
     fa: 'چگونه کارهای بزرگ و ماندگار انجام دهیم',
     es: 'Cómo hacer un gran trabajo',
@@ -30,6 +31,7 @@ const OFFLINE_PASSAGE_DICTIONARY: Record<string, Partial<Record<LanguageCode, st
     ur: 'عظیم کام کیسے کیا جائے',
   },
   'If you collected lists of techniques for doing great work in a lot of different fields, what would the intersection look like? I decided to find out by making it.': {
+    bn: 'আপনি যদি বিভিন্ন ক্ষেত্রে অসাধারণ কাজ করার কৌশলগুলোর তালিকা একত্রিত করেন, তবে তাদের সাধারণ মিলগুলো কেমন দেখাবে? আমি নিজেই সেটি তৈরি করে খুঁজে বের করার সিদ্ধান্ত নিলাম।',
     ar: 'إذا جمعت قوائم بتقنيات إنجاز الأعمال العظيمة في مجالات مختلفة عديدة، فكيف سيبدو القاسم المشترك بينها؟ قررت اكتشاف ذلك بنفسي.',
     fa: 'اگر فهرستی از روش‌های انجام کارهای بزرگ در رشته‌های گوناگون را گردآوری کنید، فصل مشترک آن‌ها چه خواهد بود؟ تصمیم گرفتم با نوشتن این مقاله پاسخ را بیابم.',
     es: 'Si recopilaras listas de técnicas para hacer un gran trabajo en muchos campos diferentes, ¿cómo sería su intersección? Decidí averiguarlo creándola.',
@@ -46,6 +48,7 @@ const OFFLINE_PASSAGE_DICTIONARY: Record<string, Partial<Record<LanguageCode, st
     ur: 'اگر آپ مختلف شعبوں میں عظیم کام کرنے کی تکنیکوں کی فہرستیں جمع کریں تو ان کا مشترک نقطہ کیا ہوگا؟ میں نے اسے خود ترتیب دے کر جاننے کا فیصلہ کیا۔',
   },
   '1. Choosing What to Work On': {
+    bn: '১. কী নিয়ে কাজ করবেন তা নির্বাচন করা',
     ar: '١. اختيار المجال الذي تعمل فيه',
     fa: '۱. انتخاب موضوع و مسیر کار',
     es: '1. Elegir en qué trabajar',
@@ -62,6 +65,7 @@ const OFFLINE_PASSAGE_DICTIONARY: Record<string, Partial<Record<LanguageCode, st
     ur: '1. کام کے موضوع کا انتخاب',
   },
   'The first step is to decide what to work on. The work you choose needs to have three qualities: it has to be something you have a natural aptitude for, that you have a deep interest in, and that offers scope to do great work.': {
+    bn: 'প্রথম ধাপ হলো আপনি কী নিয়ে কাজ করবেন তা ঠিক করা। আপনার বেছে নেওয়া কাজে তিনটি গুণ থাকতে হবে: সেটিতে আপনার সহজাত দক্ষতা থাকতে হবে, গভীর আগ্রহ থাকতে হবে এবং সেখানে অসাধারণ কিছু করার সুযোগ থাকতে হবে।',
     ar: 'الخطوة الأولى هي أن تقرر ما ستعمل عليه. يجب أن يتسم العمل الذي تختاره بثلاث صفات: موهبة فطرية لديك، واهتمام عميق به، ومجال واسع لإنجاز عمل عظيم.',
     fa: 'گام نخست این است که تصمیم بگیرید روی چه چیزی کار کنید. کاری که برمی‌گزینید باید سه ویژگی داشته باشد: استعداد طبیعی در آن داشته باشید، به آن علاقه عمیق داشته باشید و ظرفیت انجام کاری بزرگ را فراهم کند.',
     es: 'El primer paso es decidir en qué trabajar. El trabajo que elijas debe tener tres cualidades: aptitud natural, interés profundo y margen para lograr algo extraordinario.',
@@ -78,6 +82,7 @@ const OFFLINE_PASSAGE_DICTIONARY: Record<string, Partial<Record<LanguageCode, st
     ur: 'پہلا قدم یہ طے کرنا ہے کہ کس چیز پر کام کیا جائے۔ آپ کے منتخب کردہ کام میں تین خوبیاں ہونی چاہئیں: فطری صلاحیت، گہری دلچسپی اور عظیم کام کرنے کی گنجائش۔',
   },
   'Curiosity is the best guide. Your curiosity never lies, and it knows more than you do about what is worth paying attention to.': {
+    bn: 'কৌতূহলই হলো সর্বোত্তম পথপ্রদর্শক। আপনার কৌতূহল কখনো মিথ্যা বলে না, এবং কোন বিষয়ে মনোযোগ দেওয়া সার্থক তা সে আপনার চেয়েও ভালো জানে।',
     ar: 'الفضول هو أفضل مرشد. فضولك لا يكذب أبداً، وهو يعرف أكثر منك عما يستحق الاهتمام والتركيز.',
     fa: 'کنجکاوی بهترین راهنماست. کنجکاوی شما هرگز دروغ نمی‌گوید و بهتر از خودتان می‌داند چه چیزی ارزش تمرکز و توجه دارد.',
     es: 'La curiosidad es la mejor guía. Tu curiosidad nunca miente y sabe más que tú sobre aquello a lo que vale la pena prestar atención.',
@@ -93,7 +98,11 @@ const OFFLINE_PASSAGE_DICTIONARY: Record<string, Partial<Record<LanguageCode, st
     it: 'La curiosità è la migliore guida. La tua curiosità non mente mai e sa meglio di te a cosa vale la pena prestare attenzione.',
     ur: 'تجسس بہترین رہنما ہے۔ آپ کا تجسس کبھی جھوٹ نہیں بولتا اور وہ آپ سے بہتر جانتا ہے کہ کس چیز پر توجہ دینا قابلِ قدر ہے۔',
   },
+  'In practice you don’t have to worry much about the third criterion. Ambitious people are if anything already too conservative about it. So all you need to do is find something you have an aptitude for and great interest in.': {
+    bn: 'বাস্তবে তৃতীয় শর্তটি নিয়ে আপনাকে খুব বেশি চিন্তা করতে হবে না। উচ্চাকাঙ্ক্ষী মানুষেরা এ বিষয়ে এমনিতেই যথেষ্ট সতর্ক থাকেন। তাই আপনার কাজ হলো এমন কিছু খুঁজে বের করা যাতে আপনার দক্ষতা ও গভীর আগ্রহ রয়েছে।',
+  },
   '2. The Compounding Effect of Deep Focus': {
+    bn: '২. গভীর মনোযোগের চক্রবৃদ্ধি প্রভাব',
     ar: '٢. الأثر التراكمي للتركيز العميق',
     fa: '۲. اثر مرکب تمرکز عمیق',
     es: '2. El efecto compuesto del enfoque profundo',
@@ -110,6 +119,7 @@ const OFFLINE_PASSAGE_DICTIONARY: Record<string, Partial<Record<LanguageCode, st
     ur: '2. گہری توجہ کا مرکب اثر',
   },
   'Great work happens by focusing consistently on something you are genuinely curious about. Even a small daily advance compounds into extraordinary originality over a decade when distractions are ruthlessly eliminated.': {
+    bn: 'আপনি সত্যিকার অর্থে যে বিষয়ে কৌতূহলী, তার ওপর ধারাবাহিকভাবে মনোযোগ নিবদ্ধ করলেই মহান কাজ সৃষ্টি হয়। বিক্ষিপ্ততা দূর করে প্রতিদিন সামান্য অগ্রগতিও এক দশকে অসাধারণ মৌলিকত্বে পরিণত হয়।',
     ar: 'يتحقق العمل العظيم من خلال التركيز المستمر على شيء يثير فضولك بصدق. حتى التقدم اليومي البسيط يتضاعف ليشكل أصالة استثنائية عندما يتم القضاء على المشتتات.',
     fa: 'کارهای بزرگ با تمرکز پیوسته بر موضوعی که واقعاً به آن کنجکاوید شکل می‌گیرند. حتی یک پیشرفت کوچک روزانه، با حذف قاطعانه عوامل حواس‌پرتی، در طول زمان به نوآوری خارق‌العاده تبدیل می‌شود.',
     es: 'El gran trabajo surge al concentrarse constantemente en algo que despierta tu auténtica curiosidad. Incluso un pequeño avance diario se multiplica cuando eliminas las distracciones.',
@@ -125,7 +135,20 @@ const OFFLINE_PASSAGE_DICTIONARY: Record<string, Partial<Record<LanguageCode, st
     it: 'Il grande lavoro nasce concentrandosi con costanza su ciò che suscita autentica curiosità. Anche un piccolo progresso quotidiano si moltiplica eliminando le distrazioni.',
     ur: 'عظیم کام کسی ایسی چیز پر مسلسل توجہ مرکوز کرنے سے ہوتا ہے جس کے بارے میں آپ واقعی متجسس ہوں۔ خلفشار ختم کرنے سے روزانہ کی معمولی پیشرفت بھی غیر معمولی بن جاتی ہے۔',
   },
+  'Follow your own independent curiosity rather than fashionable consensus topics.': {
+    bn: 'জনপ্রিয় বা প্রচলিত বিষয়ের পেছনে না ছুটে আপনার নিজস্ব স্বাধীন কৌতূহলকে অনুসরণ করুন।',
+  },
+  'Protect large blocks of uninterrupted reading and thinking time every morning.': {
+    bn: 'প্রতিদিন সকালে নিরবচ্ছিন্নভাবে পড়া ও গভীরভাবে চিন্তা করার জন্য দীর্ঘ সময় সংরক্ষিত রাখুন।',
+  },
+  'Write down half-formed questions in the margins—most breakthroughs begin as a single anomaly noticed while reading deeply.': {
+    bn: 'পড়ার সময় মার্জিনে আধো-গঠিত প্রশ্নগুলো লিখে রাখুন—অধিকাংশ যুগান্তকারী আবিষ্কারের শুরু হয় গভীর পাঠের সময় লক্ষ্য করা ছোট কোনো প্রশ্ন থেকে।',
+  },
+  'When you read actively—highlighting the sentences that surprise you and writing brief margin notes in your own words—you transform passive consumption into original synthesis.': {
+    bn: 'যখন আপনি সক্রিয়ভাবে পড়েন—চমকে দেওয়া বাক্যগুলো হাইলাইট করেন এবং নিজের ভাষায় সংক্ষিপ্ত নোট লেখেন—তখন সাধারণ পাঠ মৌলিক চিন্তায় রূপান্তরিত হয়।',
+  },
   'The Local-First Software Manifesto': {
+    bn: 'লোকাল-ফার্স্ট (Local-First) সফটওয়্যার ইশতেহার',
     ar: 'بيان البرمجيات المحلية أولاً (Local-First)',
     fa: 'مانیفست نرم‌افزارهای محلی و آفلاین‌محور (Local-First)',
     es: 'El Manifiesto del Software Local-First',
@@ -141,7 +164,17 @@ const OFFLINE_PASSAGE_DICTIONARY: Record<string, Partial<Record<LanguageCode, st
     it: 'Il Manifesto del Software Local-First',
     ur: 'لوکل فرسٹ سافٹ ویئر کا منشور',
   },
+  'Cloud apps have given us seamless collaboration, yet they have quietly taken away true ownership of our personal knowledge. When a startup shuts down its servers or locks your library behind a recurring subscription, years of your curated articles and notes can vanish overnight.': {
+    bn: 'ক্লাউড অ্যাপ আমাদের সহজ সহযোগিতার সুযোগ দিয়েছে ঠিকই, কিন্তু নীরবে আমাদের ব্যক্তিগত জ্ঞানভাণ্ডারের প্রকৃত মালিকানা কেড়ে নিয়েছে। কোনো স্টার্টআপ সার্ভার বন্ধ করে দিলে বা সাবস্ক্রিপশনের আড়ালে লাইব্রেরি আটকে দিলে আপনার বছরের পর বছর জমানো আর্টিকেল ও নোট রাতারাতি হারিয়ে যেতে পারে।',
+  },
+  'The Seven Ideals of Local-First Software': {
+    bn: 'লোকাল-ফার্স্ট সফটওয়্যারের সাতটি আদর্শ নীতি',
+  },
+  'In local-first software, the primary copy of your data lives right on your own device in an open, inspectable database like SQLite or plain Markdown files. Remote cloud drives serve only as an encrypted backup or user-controlled sync conduit—never a gatekeeper.': {
+    bn: 'লোকাল-ফার্স্ট সফটওয়্যারে আপনার ডেটার মূল কপি থাকে সরাসরি আপনার নিজের ডিভাইসে—SQLite বা সাধারণ Markdown ফাইলের মতো উন্মুক্ত ডেটাবেসে। ক্লাউড ড্রাইভ কেবল ব্যাকআপ হিসেবে কাজ করে, কখনোই আপনার তথ্যের নিয়ন্ত্রক হিসেবে নয়।',
+  },
   'Your thoughts, highlights, and reading archive belong on your device first—accessible in Airplane Mode today and readable fifty years from now.': {
+    bn: 'আপনার চিন্তা, হাইলাইট এবং পাঠ-সংগ্রহ সবার আগে আপনার নিজের ডিভাইসের সম্পদ—যা আজ ফ্লাইট মোডেও সম্পূর্ণ সচল এবং পঞ্চাশ বছর পরেও একইভাবে পাঠযোগ্য থাকবে।',
     ar: 'أفكارك وتظليلاتك وأرشيف قراءتك ملك لجهازك أولاً — متاحة في وضع الطيران اليوم وقابلة للقراءة بعد خمسين عاماً من الآن.',
     fa: 'اندیشه‌ها، هایلایت‌ها و آرشیو مطالعات شما پیش از هر چیز متعلق به دستگاه خودتان است—امروز در حالت پرواز در دسترس و پنجاه سال دیگر هم قابل خواندن.',
     es: 'Tus pensamientos, resaltados y archivo de lectura pertenecen primero a tu dispositivo: accesibles hoy en modo avión y legibles dentro de cincuenta años.',
@@ -157,7 +190,14 @@ const OFFLINE_PASSAGE_DICTIONARY: Record<string, Partial<Record<LanguageCode, st
     it: 'I tuoi pensieri, le evidenziazioni e l’archivio di lettura appartengono prima di tutto al tuo dispositivo: accessibili oggi in modalità aereo e leggibili tra cinquant’anni.',
     ur: 'آپ کے خیالات، ہائی لائٹس اور مطالعے کا ذخیرہ سب سے پہلے آپ کے اپنے آلے کی ملکیت ہے—آج ایروپلین موڈ میں دستیاب اور پچاس سال بعد بھی پڑھنے کے قابل۔',
   },
+  'Why Plain Text & Markdown Endure': {
+    bn: 'কেন প্লেইন টেক্সট এবং Markdown চিরস্থায়ী',
+  },
+  'Proprietary cloud databases come and go, but UTF-8 Markdown (.md) and open JSON backups are immortal. By exporting your reading highlights directly to Markdown, your Second Brain in Obsidian, Notion, or Logseq remains permanently yours.': {
+    bn: 'বাণিজ্যিক ক্লাউড ডেটাবেস আসে এবং চলেও যায়, কিন্তু UTF-8 Markdown (.md) এবং উন্মুক্ত JSON ব্যাকআপ চিরস্থায়ী। আপনার হাইলাইটগুলো সরাসরি Markdown-এ এক্সপোর্ট করার মাধ্যমে Obsidian বা Notion-এ আপনার জ্ঞানভাণ্ডার চিরকাল আপনারই থাকে।',
+  },
   'Designing for Calm Attention': {
+    bn: 'প্রশান্ত মনোযোগ ও গভীর পাঠের জন্য ডিজাইন',
     ar: 'التصميم من أجل انتباه هادئ وعميق',
     fa: 'طراحی برای تمرکز آرام و مطالعه عمیق',
     es: 'Diseñando para una atención tranquila',
@@ -173,11 +213,21 @@ const OFFLINE_PASSAGE_DICTIONARY: Record<string, Partial<Record<LanguageCode, st
     it: 'Progettare per un’attenzione calma',
     ur: 'پرسکون توجہ کے لیے ڈیزائننگ',
   },
+  'Modern web pages are engineered for fragmentation: auto-playing videos, sticky newsletter popups, cookie walls, and algorithmic sidebars compete for every millisecond of your visual cortex.': {
+    bn: 'আধুনিক ওয়েব পেজগুলো মনোযোগ বিচ্ছিন্ন করার জন্যই তৈরি: অটো-প্লে ভিডিও, নিউজলেটার পপ-আপ, কুকি ব্যানার এবং অ্যালগরিদমিক সাইডবার প্রতি মুহূর্তে আপনার মনোযোগ কেড়ে নিতে প্রতিযোগিতা করে।',
+  },
+  'Principles of Literary Paper & Ink': {
+    bn: 'সাহিত্যিক কাগজ ও কালির নকশা নীতি',
+  },
+  'True reading comprehension requires visual tranquility. Replacing harsh #FFFFFF blue-light glare with warm cream paper (#FAF7F2) or vintage parchment sepia (#F3E9D2) reduces ciliary muscle fatigue during long-form reading sessions.': {
+    bn: 'গভীরভাবে পড়ে বোঝার জন্য চোখের প্রশান্তি প্রয়োজন। তীব্র সাদা নীল-আলোর বদলে উষ্ণ ক্রিম পেপার (#FAF7F2) বা ভিন্টেজ সেপিয়া (#F3E9D2) দীর্ঘ সময় পড়ার ক্ষেত্রে চোখের ক্লান্তি দূর করে।',
+  },
   'Technology should inform and calm us, bringing the tactile serenity of a physical book to the digital screen.': {
+    bn: 'প্রযুক্তি আমাদের তথ্য দেবে এবং মনে প্রশান্তি আনবে—একটি ছাপা বইয়ের পাতার স্নিগ্ধ নীরবতাকে ডিজিটাল পর্দায় ফুটিয়ে তুলবে।',
     ar: 'يجب أن تثقفنا التكنولوجيا وتمنحنا السكينة، لتنقل هدوء الكتاب الورقي الملموس إلى الشاشة الرقمية.',
     fa: 'فناوری باید آگاهی‌بخش و آرامش‌آفرین باشد و حس آرام و ملموس ورق زدن یک کتاب کاغذی را به صفحه دیجیتال بیاورد.',
     es: 'La tecnología debe informarnos y calmarnos, llevando la serenidad táctil de un libro físico a la pantalla digital.',
-    fr: 'La technologie doit nous informer et nous apaiser, apportant la sérénité tactile d’un livre papier à l’écran numérique.',
+    fr: 'La technologie doit nous informer et nous apaiser, apportant la serenité tactile d’un livre papier à l’écran numérique.',
     de: 'Technologie sollte uns informieren und beruhigen und die haptische Gelassenheit eines gedruckten Buches auf den digitalen Bildschirm bringen.',
     zh: '科技应当启发并抚平我们的心绪，将纸质书籍温润宁静的阅读质感带入数字屏幕。',
     hi: 'तकनीक को हमें सूचित और शांत करना चाहिए, तथा भौतिक पुस्तक की शांत अनुभूति को डिजिटल स्क्रीन पर लाना चाहिए।',
@@ -188,6 +238,9 @@ const OFFLINE_PASSAGE_DICTIONARY: Record<string, Partial<Record<LanguageCode, st
     ko: '기술은 우리에게 정보를 주면서도 마음을 차분하게 해 주어야 하며, 종이책의 온화한 평온함을 디지털 화면에 담아내야 합니다.',
     it: 'La tecnologia dovrebbe informarci e rasserenarci, portando la quiete tattile di un libro cartaceo sullo schermo digitale.',
     ur: 'ٹیکنالوجی کو ہمیں آگاہی اور سکون فراہم کرنا چاہیے، اور کاغذی کتاب کی پرسکون کیفیت کو ڈیجیٹل اسکرین پر لانا چاہیے۔',
+  },
+  'Pairing visual reading with native offline Text-to-Speech (TTS) engages dual sensory channels. Listening at 1.25x while following highlighted paragraphs boosts retention and turns any commute or walk into a serene seminar.': {
+    bn: 'চোখে পড়ার পাশাপাশি অফলাইন টেক্সট-টু-স্পিচ (TTS) অডিও শোনার মাধ্যমে মস্তিষ্কের দুটি ইন্দ্রিয় একসাথে কাজ করে। হাইলাইট করা অনুচ্ছেদগুলো অনুসরণ করে ১.২৫x গতিতে শোনা স্মৃতিশক্তি বাড়ায় এবং যেকোনো যাত্রাপথকে একটি প্রশান্ত জ্ঞানচর্চায় পরিণত করে।',
   },
 };
 

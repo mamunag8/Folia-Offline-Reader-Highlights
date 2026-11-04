@@ -385,13 +385,14 @@ class OfflineTTSController {
     const utteranceId = `utt-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     this.activeUtteranceId = utteranceId;
     const spec = LANGUAGE_MAP[this.languageCode] || LANGUAGE_MAP.en;
+    const bcp47Tag = spec.bcp47 || 'en-US';
 
     // TIER 1: Android Native TextToSpeech Bridge (window.FoliaNative)
     if (typeof window !== 'undefined' && window.FoliaNative?.speak) {
       try {
         const startedNative = window.FoliaNative.speak(
           block.text,
-          spec.ttsLang,
+          bcp47Tag,
           this.rate,
           utteranceId
         );
@@ -421,11 +422,11 @@ class OfflineTTSController {
           window.speechSynthesis.cancel();
           const utterance = new SpeechSynthesisUtterance(block.text);
           utterance.rate = this.rate;
-          utterance.lang = spec.ttsLang;
+          utterance.lang = bcp47Tag;
 
-          const langPrefix = spec.ttsLang.split('-')[0].toLowerCase();
+          const langPrefix = bcp47Tag.split('-')[0].toLowerCase();
           const matchingVoice =
-            voices.find((v) => v.lang.toLowerCase() === spec.ttsLang.toLowerCase()) ||
+            voices.find((v) => v.lang.toLowerCase() === bcp47Tag.toLowerCase()) ||
             voices.find((v) => v.lang.toLowerCase().startsWith(langPrefix)) ||
             voices[0];
           if (matchingVoice) {

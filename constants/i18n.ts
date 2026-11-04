@@ -1,5 +1,6 @@
 export type LanguageCode =
   | 'en'
+  | 'bn'
   | 'ar'
   | 'fa'
   | 'es'
@@ -26,6 +27,7 @@ export interface LanguageSpec {
 
 export const SUPPORTED_LANGUAGES: LanguageSpec[] = [
   { code: 'en', name: 'English', nativeName: 'English', flag: '🇺🇸', dir: 'ltr', bcp47: 'en-US' },
+  { code: 'bn', name: 'Bangla', nativeName: 'বাংলা', flag: '🇧🇩', dir: 'ltr', bcp47: 'bn-BD' },
   { code: 'ar', name: 'Arabic', nativeName: 'العربية', flag: '🇸🇦', dir: 'rtl', bcp47: 'ar-SA' },
   { code: 'fa', name: 'Persian', nativeName: 'فارسی', flag: '🇮🇷', dir: 'rtl', bcp47: 'fa-IR' },
   { code: 'es', name: 'Spanish', nativeName: 'Español', flag: '🇪🇸', dir: 'ltr', bcp47: 'es-ES' },
@@ -128,6 +130,43 @@ const EN_STRINGS: UIStrings = {
 
 export const UI_TRANSLATIONS: Record<LanguageCode, UIStrings> = {
   en: EN_STRINGS,
+  bn: {
+    ...EN_STRINGS,
+    appSubtitle: 'অফলাইন আর্টিকেল রিডার, ৪-রঙের হাইলাইটার, বাংলা অনুবাদ ও অডিও রিডার',
+    offlineReady: '১০০% অফলাইন প্রস্তুত',
+    pasteLink: '+ লিংক পেস্ট করুন',
+    saveUrl: 'লিংক সেভ করুন',
+    searchPlaceholder: 'শিরোনাম, সম্পূর্ণ লেখা বা হাইলাইট খুঁজুন...',
+    inbox: '📥 ইনবক্স',
+    favorites: '⭐ প্রিয় তালিকা',
+    archived: '🗂️ আর্কাইভ',
+    allSaved: '📚 সব আর্টিকেল',
+    minRead: 'মিনিট পড়া',
+    highlightsCount: 'হাইলাইট',
+    readPct: 'পড়া হয়েছে',
+    tabLibrary: 'লাইব্রেরি',
+    tabHighlights: 'হাইলাইট ও নোট',
+    tabSettings: 'সেটিংস ও ব্যাকআপ',
+    listen: 'শুনুন',
+    listening: 'শোনাচ্ছে...',
+    translateArticle: 'অনুবাদ',
+    translating: 'অনুবাদ হচ্ছে...',
+    bilingualMode: 'দ্বিভাষিক (মূল + বাংলা)',
+    translatedOnly: 'সম্পূর্ণ অনূদিত লেখা',
+    originalLanguage: 'মূল ভাষা',
+    addNote: 'নোট যোগ করুন',
+    editNote: 'নোট সম্পাদনা',
+    copyText: 'কপি',
+    readHere: 'এখান থেকে শুনুন',
+    translateBlock: 'অনুবাদ করুন',
+    dailyRediscovery: '✨ দৈনিক পুনরালোচনা — হাইলাইট ফ্ল্যাশকার্ড',
+    exportAllMd: '📤 সবগুলো Markdown-এ এক্সপোর্ট করুন',
+    articlesSaved: 'সংরক্ষিত আর্টিকেল',
+    wordsRead: 'পঠিত শব্দ',
+    highlightsCreated: 'তৈরি হাইলাইট',
+    appLanguageLabel: 'অ্যাপের ভাষা ও আর্টিকেল অনুবাদক',
+    defaultTranslateTarget: 'ডিফল্ট অনুবাদের ভাষা',
+  },
   ar: {
     ...EN_STRINGS,
     appSubtitle: 'قارئ مقالات بدون إنترنت مع تظليل وترجمة فورية وقراءة صوتية',

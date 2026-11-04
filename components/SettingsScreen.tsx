@@ -138,7 +138,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
             {ui.tabSettings}
           </h1>
           <p className="text-xs" style={{ color: theme.textSecondary }}>
-            100% Serverless &amp; Local-First • 15-Language Built-In Translator • Zero Ads
+            100% Serverless &amp; Local-First • 16-Language Built-In Translator (Bangla বাংলা + 15 Global) • Zero Ads
           </p>
         </div>
 
